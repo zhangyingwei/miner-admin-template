@@ -103,10 +103,11 @@ class AsynchronousTable extends React.Component {
         },{
             key: 'action',
             title: '操作',
-            width: 160,
+            width: 250,
             render: (text, record) => (
                 <span>
                     <Button id={record.id} onClick={this.edit} >通过</Button>
+                    <Button id={record.id} onClick={this.edit} >不合适</Button>
                     <Button id={record.id} onClick={this.del} >黑名单</Button>
                 </span>
             )

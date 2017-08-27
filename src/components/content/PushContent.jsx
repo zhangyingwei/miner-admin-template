@@ -2,35 +2,77 @@
  * Created by hao.cheng on 2017/4/16.
  */
 import React from 'react';
-import { Table, Button, Row, Col, Card, Icon } from 'antd';
+import { Table, Button, Row, Col, Card, Icon, Tag } from 'antd';
 import { getPros } from '../../axios';
 import BreadcrumbCustom from '../BreadcrumbCustom';
-import SearchForm from './SearchForm'
+import PushSearchForm from './PushSearchForm'
 import NProgress from 'nprogress';
+import MinerModal from './MinerModal'
 
 class AsynchronousTable extends React.Component {
     state = {
         selectedRowKeys: [],  // Check here to configure the default column
         data: [],
         loading: false,
-        qemail: '',
-        qtopic: '',
+        push: 'disabled',
         pagination:{
             pageSize: 8
+        },
+        model: {
+            text: 'model message',
+            visible: false,
+            loading: false
         }
     };
     componentDidMount() {
         this.start();
     };
-    edit = (e) => {
-        console.log("编辑"+e.target.id);
-    };
-    del = (e) => {
-        console.log("删除"+e.target.id);
-    };
     changePage = (page) => {
         console.log("pageSize:"+page.pageSize);
         console.log("current:"+page.current);
+    };
+    showModal = (message) => {
+        this.setState({
+            model: {
+                text: message,
+                visible: true
+            }
+        });
+    };
+    closeModal = (message) => {
+        this.setState({
+            model: {
+                text: message,
+                visible: true,
+                loading: true
+            }
+        });
+        setTimeout(() => {
+            this.setState({
+                model: {
+                    text: message,
+                    visible: false,
+                    loading: false
+                }
+            });
+        }, 1000);
+    };
+    handleOk = () => {
+        console.log("handleOk")
+        this.setState({model:{
+          text: '正在推送......',
+          visible:true,
+          loading: true,
+        }});
+        setTimeout(() => {
+            this.closeModal("推送成功！");
+        },5000);
+    };
+    handleCancel = () => {
+        console.log('Clicked cancel button');
+        this.setState({model:{
+          visible: false,
+        }});
     };
     start = () => {
         console.log("start");
@@ -55,12 +97,6 @@ class AsynchronousTable extends React.Component {
             });
         });
     };
-    select = () => {
-        const email = this.state.qemail
-        const topics = this.state.qtopic
-        console.log(email);
-        console.log(topics);
-    };
     onQuery = (values) => {
         NProgress.start()
         console.log(values);
@@ -69,10 +105,17 @@ class AsynchronousTable extends React.Component {
     onSelectChange = (selectedRowKeys) => {
         console.log('selectedRowKeys changed: ', selectedRowKeys);
         this.setState({ selectedRowKeys });
+        this.setState({push: selectedRowKeys.length == 0? 'true':''})
     };
     showContent = (record, event) => {
         console.log(record);
     };
+    onPush = () => {
+        console.log("push..")
+        const size = this.state.selectedRowKeys.length
+        const message = "共选择了 "+size+" 条数据，确定要推送吗？"
+        this.showModal(message)
+    }
     render() {
         const columns = [{
             title: '编号',
@@ -90,15 +133,25 @@ class AsynchronousTable extends React.Component {
         },{
             title: '主题',
             dataIndex: 'topic',
-            width: 150
+            width: 150,
+            render: (text,record) => {
+                const colors = ['#2db7f5','#f50','#87d068','#108ee9']
+                console.log(Math.random()*4)
+                const color = colors[parseInt(Math.random()*4,10)]
+                return (
+                    <Tag color={color}>{text}</Tag>
+                )
+            }
         }, {
             title: '发布时间',
             dataIndex: 'pubdate',
-            width: 150
+            width: 150,
+            render: (text, record) => <span><Icon type="calendar" /> {text}</span>
         }, {
             title: '推送时间',
             dataIndex: 'pushdate',
-            width: 150
+            width: 150,
+            render: (text, record) => <span><Icon type="calendar" /> {text}</span>
         }];
 
         const { loading, selectedRowKeys,pagination } = this.state;
@@ -108,13 +161,21 @@ class AsynchronousTable extends React.Component {
         };
         return (
             <div className="gutter-example">
+                <MinerModal 
+                    visible={this.state.model.visible} 
+                    text={this.state.model.text} 
+                    loading={this.state.model.loading} 
+                    onOk={this.handleOk}
+                    confirmLoading={this.state.model.loading}
+                    onCancel={this.handleCancel}
+                />
                 <BreadcrumbCustom first="文章管理" second="待发布文章" />
                 <Row gutter={16}>
                     <Col className="gutter-row" span={24}>
                         <div className="gutter-box">
                             <Card title="待发布文章" bordered={false}>
                                 <div style={{ marginBottom: 16 }}>
-                                    <SearchForm querySubs={ this.onQuery } />
+                                    <PushSearchForm onPush={this.onPush} querySubs={ this.onQuery } push={this.state.push} />
                                 </div>
                                 <Table pagination={pagination} onChange={this.changePage} rowSelection={rowSelection} columns={columns} dataSource={this.state.data} />
                             </Card>
